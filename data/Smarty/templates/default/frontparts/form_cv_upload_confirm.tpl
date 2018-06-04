@@ -29,9 +29,18 @@
     <tr>
         <th>履歴書ファイル</th>
         <td>
-            <!--{if $arrForm.cv != ""}-->
+            <p>
+                履歴書 :
+                <!--{if $arrForm.cv != ""}-->
                 <!--{$arrForm.cv_name|h}-->
-            <!--{/if}-->
+                <!--{/if}-->
+            </p>
+            <p>
+                仕事歴史 :
+                <!--{if $arrForm.resume != ""}-->
+                <!--{$arrForm.resume_name|h}-->
+                <!--{/if}-->
+            </p>
         </td>
     </tr>
 </table>

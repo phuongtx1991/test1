@@ -111,20 +111,26 @@ class LC_Page_Mypage_Cv extends LC_Page_AbstractMypage_Ex {
         $objFormParam = new SC_FormParam_Ex();
         SC_Helper_Customer_Ex::sfCustomerMypageParam($objFormParam);
         SC_Helper_Customer_Ex::sfCustomerCvParam($objFormParam);
+        SC_Helper_Customer_Ex::sfCustomerResumeParam($objFormParam);
         $objFormParam->setParam($_POST);    // POST値の取得
-        // アップロードファイル情報の初期化
-        $objUpFile = new SC_UploadFile_Ex(IMAGE_TEMP_REALDIR, IMAGE_SAVE_REALDIR);
-        $objUpFile->addFile('写真', 'image', array('jpg', 'gif', 'png'), IMAGE_SIZE, false, LARGE_IMAGE_WIDTH, LARGE_IMAGE_HEIGHT);
-        $objUpFile->setHiddenFileList($_POST);
+        // create avatar file info
+        $objAvatarFile = new SC_UploadFile_Ex(IMAGE_TEMP_REALDIR, IMAGE_SAVE_REALDIR);
+        $objAvatarFile->addFile('写真', 'image', array('jpg', 'gif', 'png'), IMAGE_SIZE, false, LARGE_IMAGE_WIDTH, LARGE_IMAGE_HEIGHT);
+        $objAvatarFile->setHiddenFileList($_POST);
 
-        // ダウンロード販売ファイル情報の初期化
-        $objDownFile = new SC_UploadFile_Ex(DOWN_TEMP_REALDIR, DOWN_SAVE_REALDIR);
-        $objDownFile->addFile('履歴書ファイル', 'down_file', explode(',', DOWNLOAD_EXTENSION), DOWN_SIZE, true, 0, 0);
-        $objDownFile->setHiddenFileList($_POST);
+        // create file cv info
+        $objCvFile = new SC_UploadFile_Ex(DOWN_TEMP_REALDIR, DOWN_SAVE_REALDIR);
+        $objCvFile->addFile('履歴書ファイル', 'down_file', explode(',', DOWNLOAD_EXTENSION), DOWN_SIZE, true, 0, 0);
+        $objCvFile->setHiddenFileList($_POST);
+
+        // create file resume info
+        $objResumeFile = new SC_UploadFile_Ex(DOWN_TEMP_DIR_COMMON, DOWN_SAVE_DIR_COMMON);
+        $objResumeFile->addFile(' 仕事歴史ファイル', 'resume_file', explode(',', DOWNLOAD_EXTENSION), DOWN_SIZE, true, 0, 0);
+        $objResumeFile->setHiddenFileList($_POST);
 
         switch ($this->getMode()) {
             case 'cv_confirm':
-                $this->arrErr = $objDownFile->checkExists();
+                $this->arrErr = $objCvFile->checkExists();
 
                 // 入力エラーなし
                 if (empty($this->arrErr)) {
@@ -136,7 +142,7 @@ class LC_Page_Mypage_Cv extends LC_Page_AbstractMypage_Ex {
             // 確認
             case 'confirm':
                 $this->arrErr = SC_Helper_Customer_Ex::sfCustomerMypageErrorCheck($objFormParam);
-                $this->arrErr = array_merge((array) $this->arrErr, (array) $objUpFile->checkExists());
+                $this->arrErr = array_merge((array) $this->arrErr, (array) $objAvatarFile->checkExists());
                 unset($this->arrErr['password']);
 
                 // 入力エラーなし
@@ -146,16 +152,15 @@ class LC_Page_Mypage_Cv extends LC_Page_AbstractMypage_Ex {
                     $this->tpl_subtitle = '履歴書内容編集(確認ページ)';
                 }
                 break;
-            // 会員登録と完了画面
             case 'complete':
                 $this->arrErr = SC_Helper_Customer_Ex::sfCustomerMypageErrorCheck($objFormParam);
-                $this->arrErr = array_merge((array) $this->arrErr, (array) $objUpFile->checkExists());
+                $this->arrErr = array_merge((array)$this->arrErr, (array)$objAvatarFile->checkExists());
                 unset($this->arrErr['password']);
 
                 // 入力エラーなし
                 if (empty($this->arrErr)) {
                     // 会員情報の登録
-                    $this->lfRegistCustomerData($objFormParam, $customer_id, $objUpFile);
+                    $this->lfRegistCustomerData($objFormParam, $customer_id, $objAvatarFile);
 
                     //セッション情報を最新の状態に更新する
                     $objCustomer->updateSession();
@@ -166,21 +171,25 @@ class LC_Page_Mypage_Cv extends LC_Page_AbstractMypage_Ex {
                 break;
             // 会員登録と完了画面
             case 'cv_complete':
-                $this->arrErr = $objDownFile->checkExists();
-
+                $this->arrErr = array_merge((array)$objCvFile->checkExists(), (array)$objResumeFile->checkExists());
                 // 入力エラーなし
-                if (empty($this->arrErr)) {
-                    // 会員情報の登録
+                if (empty((array)$objCvFile->checkExists()) || empty((array)$objResumeFile->checkExists())) {
                     $val = $objFormParam->getDbArray();
-                    $sqlval['cv'] = $val['cv'];
-                    $sqlval['cv_name'] = $val['cv_name'];
-
+                    if(empty((array)$objCvFile->checkExists()))
+                    {
+                        $sqlval['cv'] = $val['cv'];
+                        $sqlval['cv_name'] = $val['cv_name'];
+                        $objCvFile->moveTempDownFile();
+                    }
+                    if(empty((array)$objResumeFile->checkExists()))
+                    {
+                        $sqlval['resume'] = $val['resume'];
+                        $sqlval['resume_name'] = $val['resume_name'];
+                        $objResumeFile->moveTempDownFile();
+                    }
                     SC_Helper_Customer_Ex::sfEditCustomerData($sqlval, $customer_id);
-                    $objDownFile->moveTempDownFile();
-
                     //セッション情報を最新の状態に更新する
                     $objCustomer->updateSession();
-
                     // 完了ページに移動させる。
                     SC_Response_Ex::sendRedirect('cv_complete.php');
                 }
@@ -194,27 +203,56 @@ class LC_Page_Mypage_Cv extends LC_Page_AbstractMypage_Ex {
             case 'delete_image':
                 switch ($this->getMode()) {
                     case 'upload_image':
-                        $this->arrErr['image'] = $objUpFile->makeTempFile('image', IMAGE_RENAME);
+                        $this->arrErr['image'] = $objAvatarFile->makeTempFile('image', IMAGE_RENAME);
                         break;
                     case 'delete_image':
-                        $this->lfDeleteTempFile($objUpFile, 'image');
+                        $this->lfDeleteTempFile($objAvatarFile, 'image');
                         break;
                     default:
                         break;
                 }
                 break;
+            // upload cv
             case 'upload_down':
+                //delete cv
             case 'delete_down':
                 switch ($this->getMode()) {
                     case 'upload_down':
                         // ファイルを一時ディレクトリにアップロード
-                        $this->arrErr['down_file'] = $objDownFile->makeTempDownFile();
-                        $objFormParam->setParam(array('cv_name' => $_FILES['down_file']['name']));
+                        $this->arrErr['down_file'] = $objCvFile->makeTempDownFile();
+                        if ($this->arrErr['down_file'] == null) {
+                            $tempfileName = $objFormParam->getHashArray()['cv'];
+                            $objCvFile->deleteTempFile($tempfileName);
+                            $objFormParam->setParam(array('cv_name' => $_FILES['down_file']['name']));
+                        }
                         break;
                     case 'delete_down':
                         // ファイル削除
-                        $objDownFile->deleteFile('down_file');
+                        $objCvFile->deleteFile('down_file');
                         $objFormParam->setParam(array('cv' => ''));
+                        break;
+                    default:
+                        break;
+                }
+                break;
+            // upload resume
+            case 'resume_file':
+                //delete cv
+            case 'delete_down_resume':
+                switch ($this->getMode()) {
+                    case 'resume_file':
+                        // ファイルを一時ディレクトリにアップロード
+                        $this->arrErr['resume_file'] = $objResumeFile->makeTempDownFile('resume_file');
+                        if ($this->arrErr['resume_file'] == null) {
+                            $tempfileName = $objFormParam->getHashArray()['resume'];
+                            $objCvFile->deleteTempFile($tempfileName);
+                            $objFormParam->setParam(array('resume_name' => $_FILES['resume_file']['name']));
+                        }
+                        break;
+                    case 'delete_down_resume':
+                        // ファイル削除
+                        $objResumeFile->deleteFile('resume_file');
+                        $objFormParam->setParam(array('resume' => ''));
                         break;
                     default:
                         break;
@@ -236,10 +274,11 @@ class LC_Page_Mypage_Cv extends LC_Page_AbstractMypage_Ex {
                 $this->arrForm = $this->customer_data;
                 break;
         }
-        if ($this->getMode() != '')
+        if ($this->getMode() != '') {
             $this->arrForm = $objFormParam->getHashArray();
+        }
 
-        $this->setUploadFile($objUpFile, $objDownFile, $this->arrForm);
+        $this->setUploadFile($objAvatarFile, $objCvFile, $objResumeFile, $this->arrForm);
     }
 
     /**
@@ -250,10 +289,13 @@ class LC_Page_Mypage_Cv extends LC_Page_AbstractMypage_Ex {
      * @access private
      * @return void
      */
-    public function lfRegistCustomerData(&$objFormParam, $customer_id, $objUpFile) {
+    public function lfRegistCustomerData(&$objFormParam, $customer_id, $objUpFile)
+    {
         $sqlval = $objFormParam->getDbArray();
         unset($sqlval['cv']);
         unset($sqlval['cv_name']);
+        unset($sqlval['resume']);
+        unset($sqlval['resume_name']);
 
         $sqlval['desired_work'] = implode(" ", $sqlval['desired_work']);
         $sqlval['desired_position'] = implode(" ", $sqlval['desired_position']);
@@ -277,13 +319,20 @@ class LC_Page_Mypage_Cv extends LC_Page_AbstractMypage_Ex {
         }
     }
 
-    public function setUploadFile(&$objUpFile, &$objDownFile, &$arrForm) {
-        $objUpFile->setDBFileList($arrForm);
-        $objDownFile->setDBDownFile($arrForm);
-        $arrHidden = $objUpFile->getHiddenFileList();
-        $arrForm['arrHidden'] = array_merge((array) $arrHidden, (array) $objDownFile->getHiddenFileList());
-        $arrForm['arrFile'] = $objUpFile->getFormFileList(IMAGE_TEMP_URLPATH, IMAGE_SAVE_URLPATH);
-        $arrForm['cv'] = $objDownFile->getFormDownFile();
+    public function setUploadFile(&$objAvatarFile, &$objCvFile, &$objResumeFile, &$arrForm)
+    {
+        $objAvatarFile->setDBFileList($arrForm);
+        $objCvFile->setDBDownFile($arrForm);
+        $objResumeFile->setDBDownFile($arrForm,'resume');
+
+        $arrHiddenAvt = $objAvatarFile->getHiddenFileList();
+        $arrHiddenCv = $objCvFile->getHiddenFileList();
+        $arrHiddenRs = $objResumeFile->getHiddenFileList();
+
+        $arrForm['arrHidden'] = array_merge((array)$arrHiddenAvt, (array)$arrHiddenCv, (array)$arrHiddenRs);
+        $arrForm['arrFile'] = $objAvatarFile->getFormFileList(IMAGE_TEMP_URLPATH, IMAGE_SAVE_URLPATH);
+        $arrForm['cv'] = $objCvFile->getFormDownFile();
+        $arrForm['resume'] = $objResumeFile->getFormDownFile();
     }
 
     public function lfDeleteTempFile(&$objUpFile, $image_key) {

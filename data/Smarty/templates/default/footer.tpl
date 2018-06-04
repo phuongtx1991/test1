@@ -29,11 +29,13 @@
                 <div class="table_cell">
                     <p class="footer_title">Address</p>
                     <p>Room 319 on 3rd floor, block C, Udic Complex building,<br />Hoang Dao Thuy street, Trung Hoa ward,<br />Cau Giay dist, Ha Noi, Viet Nam</p>
+                    <p class="footer_title" style="margin-top: 5px">Địa chỉ tại Nhật Bản </p>
+                    <p>6th floor, daiichi Seimei building, <br />nichi ikebukuro, 2-40-12 ikebukuro,<br />Toshima ku, Tokyo.</p>
                 </div>
                 <div class="table_cell">
                     <p class="footer_title">Contact</p>
-                    <p>Mail: <a href='mailto:<!--{$arrSiteInfo.email02|h}-->'><!--{$arrSiteInfo.email02|h}--></a></p>
-                    <p style="margin-top: 8px;">Tel : 090-229-7658</p>
+                    <p>Email: VN: <a href='mailto:<!--{$arrSiteInfo.email02|h}-->'><!--{$arrSiteInfo.email02|h}--></a> - JP: <a href='mailto:<!--{$arrSiteInfo.email04|h}-->'><!--{$arrSiteInfo.email04|h}--></a></p>
+                    <p style="margin-top: 8px;">Tel : VN: 090-229-7658 - JP: 03-5957-3475</p>
                     <p style="margin-top: 4px;">Social: &nbsp;<a href="https://www.facebook.com/hyperionjobvn/" target="_blank"><img src="<!--{$TPL_URLPATH}-->img/icon/icon_fb.png" alt="Facebook" /></a> <a href="https://www.youtube.com/" target="_blank"><img src="<!--{$TPL_URLPATH}-->img/icon/icon_youtube.png" alt="Youtube" /></a></p>
                 </div>
             </div>
